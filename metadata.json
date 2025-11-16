@@ -1,0 +1,8 @@
+{
+  "name": "Copy of Gemini Calorie Tracker",
+  "description": "A smart calorie tracking app that uses AI to log food via photos and voice, provides a detailed dashboard, and offers personalized recipe suggestions.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
