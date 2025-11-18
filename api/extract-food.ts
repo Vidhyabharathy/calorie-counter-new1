@@ -1,45 +1,43 @@
-import { ai } from "../lib/ai-client";
-import { Type } from "@google/genai";
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { GoogleGenAI, Type } from "@google/genai";
 
-export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
-  const { text } = req.body;
-
-  const foodItemSchema = {
-    type: Type.OBJECT,
-    properties: {
-      name: { type: Type.STRING },
-      calories: { type: Type.NUMBER },
-      protein: { type: Type.NUMBER },
-      carbs: { type: Type.NUMBER },
-      fat: { type: Type.NUMBER },
-    },
-    required: ["name", "calories", "protein", "carbs", "fat"],
-  };
-
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
+    if (req.method !== "POST")
+      return res.status(405).json({ error: "Method not allowed" });
+
+    const { text } = req.body;
+
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+    const schema = {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          name: { type: Type.STRING },
+          calories: { type: Type.NUMBER },
+          protein: { type: Type.NUMBER },
+          carbs: { type: Type.NUMBER },
+          fat: { type: Type.NUMBER }
+        },
+        required: ["name", "calories", "protein", "carbs", "fat"]
+      }
+    };
+
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: [
-        {
-          text: `You are a nutrition expert. Extract food items mentioned in this text and return ONLY a JSON array: "${text}"`,
-        },
-      ],
+      contents: `Extract food items from text and return them as a JSON array: "${text}"`,
       config: {
         responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.ARRAY,
-          items: foodItemSchema,
-        },
-      },
+        responseSchema: schema,
+      }
     });
 
-    return res.status(200).json(JSON.parse(response.text.trim()));
-  } catch (error) {
-    console.error("ExtractFood API Error:", error);
-    return res.status(500).json({ error: "Failed to extract food.", details: error.message });
+    const data = JSON.parse(response.text.trim());
+    return res.status(200).json(data);
+
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
   }
 }
